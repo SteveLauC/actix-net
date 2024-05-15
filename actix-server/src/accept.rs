@@ -59,7 +59,13 @@ impl Accept {
                     .collect::<Vec<_>>();
 
                 // start worker using service factories
-                ServerWorker::start(idx, factories, waker_queue.clone(), builder.worker_config)
+                ServerWorker::start(
+                    idx,
+                    factories,
+                    waker_queue.clone(),
+                    builder.worker_config,
+                    builder.on_thread_start.clone(),
+                )
             })
             .collect::<io::Result<Vec<_>>>()?
             .into_iter()

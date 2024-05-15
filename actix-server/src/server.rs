@@ -296,6 +296,10 @@ impl ServerInner {
                     factories,
                     self.waker_queue.clone(),
                     self.worker_config,
+                    // TODO: we should invoke `on_thread_start` here as well,
+                    // though it is that necessarily required, so let's do it
+                    // later.
+                    None,
                 ) {
                     Ok((handle_accept, handle_server)) => {
                         *self

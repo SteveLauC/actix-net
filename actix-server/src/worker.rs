@@ -283,6 +283,7 @@ impl ServerWorker {
         factories: Vec<Box<dyn InternalServiceFactory>>,
         waker_queue: WakerQueue,
         config: ServerWorkerConfig,
+        on_worker_start: Option<Arc<dyn Fn() + Send + Sync + 'static>>,
     ) -> io::Result<(WorkerHandleAccept, WorkerHandleServer)> {
         trace!("starting server worker {}", idx);
 
@@ -327,6 +328,9 @@ impl ServerWorker {
                 std::thread::Builder::new()
                     .name(format!("actix-server worker {}", idx))
                     .spawn(move || {
+                        if let Some(on_worker_start) = on_worker_start {
+                            on_worker_start();
+                        }
                         let (worker_stopped_tx, worker_stopped_rx) = oneshot::channel();
 
                         // local set for running service init futures and worker services

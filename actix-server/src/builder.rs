@@ -1,4 +1,4 @@
-use std::{io, num::NonZeroUsize, time::Duration};
+use std::{io, num::NonZeroUsize, sync::Arc, time::Duration};
 
 use actix_rt::net::TcpStream;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
@@ -32,6 +32,7 @@ pub enum MpTcp {
 /// [Server] builder.
 pub struct ServerBuilder {
     pub(crate) threads: usize,
+    pub(crate) on_thread_start: Option<Arc<dyn Fn() + Send + Sync + 'static>>,
     pub(crate) token: usize,
     pub(crate) backlog: u32,
     pub(crate) factories: Vec<Box<dyn InternalServiceFactory>>,
@@ -57,6 +58,7 @@ impl ServerBuilder {
 
         ServerBuilder {
             threads: std::thread::available_parallelism().map_or(2, NonZeroUsize::get),
+            on_thread_start: None,
             token: 0,
             factories: Vec::new(),
             sockets: Vec::new(),
@@ -86,6 +88,20 @@ impl ServerBuilder {
     pub fn workers(mut self, num: usize) -> Self {
         assert_ne!(num, 0, "workers must be greater than 0");
         self.threads = num;
+        self
+    }
+
+    /// Sets a closure that will be invoked on the start of every worker.
+    ///
+    /// # Examples:
+    /// ```
+    /// # use actix_server::ServerBuilder;
+    /// let builder = ServerBuilder::new().workers(4).on_thread_start(|| {
+    ///     println!("Hello from a worker!")
+    /// });
+    /// ```
+    pub fn on_thread_start<C: Fn() + Send + Sync + 'static>(mut self, c: C) -> Self {
+        self.on_thread_start = Some(Arc::new(c));
         self
     }
 
